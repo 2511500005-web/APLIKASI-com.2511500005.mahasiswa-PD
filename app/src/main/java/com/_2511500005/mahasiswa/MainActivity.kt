@@ -29,77 +29,104 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupRecyclerView()
+        setupActions()
+        loadData()
+    }
+
+    private fun setupRecyclerView() {
         adapter = MahasiswaAdapter(
-            onKlik = { tampilkanFormUbah(it) },
-            onTahanLama = { konfirmasiHapus(it) }
+            onItemClick = { showDetail(it.id) },      // klik item -> GET by ID
+            onItemLongClick = { konfirmasiHapus(it) } // tekan lama -> hapus
         )
         binding.rvMahasiswa.layoutManager = LinearLayoutManager(this)
         binding.rvMahasiswa.adapter = adapter
-
-        binding.btnMuat.setOnClickListener { muatData() }
-        binding.btnCari.setOnClickListener { muatData() }
-        binding.fabTambah.setOnClickListener { tampilkanFormTambah() }
-
-        muatData()
     }
 
-    private fun muatData() {
-        val keyword = binding.etCari.text.toString().trim()
+    private fun setupActions() {
+        binding.btnTambah.setOnClickListener {
+            tampilkanForm("Tambah Mahasiswa", null) { req ->
+                lifecycleScope.launch { prosesHasilTulis(MahasiswaRepository.tambah(req)) }
+            }
+        }
+        binding.btnCari.setOnClickListener {
+            loadData(binding.etSearch.text.toString().trim())
+        }
+        binding.btnReset.setOnClickListener {
+            binding.etSearch.text?.clear()
+            loadData()
+        }
+    }
 
+    // GET semua data, atau GET ?search= jika keyword diisi
+    private fun loadData(keyword: String = "") {
         lifecycleScope.launch {
-            setLoading(true)
-            setStatus("Status: Menghubungkan ke server...", Color.DKGRAY)
+            binding.progressBar.visibility = View.VISIBLE
+            binding.tvEmpty.visibility = View.GONE
 
-            val hasil = MahasiswaRepository.ambilSemua(keyword)
-
-            setLoading(false)
-            when (hasil) {
+            when (val hasil = MahasiswaRepository.ambilSemua(keyword)) {
                 is HasilApi.Sukses -> {
-                    adapter.setData(hasil.data)
-                    binding.tvKosong.visibility = if (hasil.data.isEmpty()) View.VISIBLE else View.GONE
-                    setStatus("Status: Terhubung (${hasil.data.size} data ditemukan)", warnaHijau)
+                    adapter.updateData(hasil.data)
+                    binding.tvJudul.text = "Data Mahasiswa (${hasil.data.size})"
+
+                    if (hasil.data.isEmpty()) {
+                        binding.tvEmpty.visibility = View.VISIBLE
+                        binding.tvEmpty.text = if (keyword.isEmpty()) {
+                            "Belum ada data mahasiswa"
+                        } else {
+                            "Tidak ditemukan untuk \"$keyword\""
+                        }
+                    }
+                    setStatus("Status: Terhubung (${hasil.data.size} data)", warnaHijau)
                 }
-                is HasilApi.Gagal -> setStatus("Status: ${hasil.pesan}", warnaMerah)
+                is HasilApi.Gagal -> {
+                    binding.tvEmpty.visibility = View.VISIBLE
+                    binding.tvEmpty.text = "Gagal memuat data"
+                    setStatus("Status: ${hasil.pesan}", warnaMerah)
+                }
+            }
+
+            binding.progressBar.visibility = View.GONE
+        }
+    }
+
+    // GET by ID: dipanggil saat item diklik
+    private fun showDetail(id: Int) {
+        lifecycleScope.launch {
+            when (val hasil = MahasiswaRepository.ambilDetail(id)) {
+                is HasilApi.Sukses -> tampilkanDialogDetail(hasil.data)
+                is HasilApi.Gagal -> {
+                    AlertDialog.Builder(this@MainActivity)
+                        .setTitle("Gagal memuat detail")
+                        .setMessage(hasil.pesan)
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
             }
         }
     }
 
-    private fun setLoading(aktif: Boolean) {
-        binding.progressBar.visibility = if (aktif) View.VISIBLE else View.GONE
-        binding.btnMuat.isEnabled = !aktif
-        binding.btnCari.isEnabled = !aktif
-        binding.fabTambah.isEnabled = !aktif
+    private fun tampilkanDialogDetail(m: Mahasiswa) {
+        AlertDialog.Builder(this)
+            .setTitle(m.nama)
+            .setMessage("ID: ${m.id}\nNIM: ${m.nim}\nJurusan: ${m.jurusan}")
+            .setPositiveButton("Ubah") { _, _ -> tampilkanFormUbah(m) }
+            .setNegativeButton("Tutup", null)
+            .show()
     }
 
-    private fun setStatus(teks: String, warna: Int) {
-        binding.tvConnectionStatus.text = teks
-        binding.tvConnectionStatus.setTextColor(warna)
-    }
-
-    private fun tampilkanFormTambah() {
-        tampilkanForm("Tambah Mahasiswa", null) { req ->
-            lifecycleScope.launch {
-                prosesHasilTulis(MahasiswaRepository.tambah(req))
-            }
+    private fun tampilkanFormUbah(m: Mahasiswa) {
+        tampilkanForm("Ubah Data Mahasiswa", m) { req ->
+            lifecycleScope.launch { prosesHasilTulis(MahasiswaRepository.ubah(m.id, req)) }
         }
     }
 
-    private fun tampilkanFormUbah(mhs: Mahasiswa) {
-        tampilkanForm("Ubah Data Mahasiswa", mhs) { req ->
-            lifecycleScope.launch {
-                prosesHasilTulis(MahasiswaRepository.ubah(mhs.id, req))
-            }
-        }
-    }
-
-    private fun konfirmasiHapus(mhs: Mahasiswa) {
+    private fun konfirmasiHapus(m: Mahasiswa) {
         AlertDialog.Builder(this)
             .setTitle("Hapus data?")
-            .setMessage("${mhs.nama} (${mhs.nim}) akan dihapus.")
+            .setMessage("${m.nama} (${m.nim}) akan dihapus.")
             .setPositiveButton("Hapus") { _, _ ->
-                lifecycleScope.launch {
-                    prosesHasilTulis(MahasiswaRepository.hapus(mhs.id))
-                }
+                lifecycleScope.launch { prosesHasilTulis(MahasiswaRepository.hapus(m.id)) }
             }
             .setNegativeButton("Batal", null)
             .show()
@@ -142,7 +169,7 @@ class MainActivity : AppCompatActivity() {
         when (hasil) {
             is HasilApi.Sukses -> {
                 Toast.makeText(this, hasil.pesan, Toast.LENGTH_SHORT).show()
-                muatData()
+                loadData(binding.etSearch.text.toString().trim())
             }
             is HasilApi.Gagal -> {
                 AlertDialog.Builder(this)
@@ -152,5 +179,10 @@ class MainActivity : AppCompatActivity() {
                     .show()
             }
         }
+    }
+
+    private fun setStatus(teks: String, warna: Int) {
+        binding.tvConnectionStatus.text = teks
+        binding.tvConnectionStatus.setTextColor(warna)
     }
 }

@@ -8,7 +8,13 @@ $pdo = getDb();
 try {
     switch ($_SERVER['REQUEST_METHOD'] ?? 'GET') {
         case 'GET':
-            ambilSemua($pdo);
+            // ?id=... -> detail satu data (data berbentuk OBJECT)
+            // tanpa id -> daftar / pencarian (data berbentuk ARRAY)
+            if (isset($_GET['id'])) {
+                ambilDetail($pdo, ambilId());
+            } else {
+                ambilSemua($pdo);
+            }
             break;
         case 'POST':
             tambahData($pdo);
@@ -41,14 +47,21 @@ function ambilSemua(PDO $pdo): void
         $stmt = $pdo->query('SELECT id, nim, nama, jurusan FROM mahasiswa ORDER BY nama');
     }
 
-    $rows = array_map(static fn(array $r): array => [
-        'id'      => (int) $r['id'],
-        'nim'     => (string) $r['nim'],
-        'nama'    => (string) $r['nama'],
-        'jurusan' => (string) $r['jurusan'],
-    ], $stmt->fetchAll());
-
+    $rows = array_map(static fn(array $r): array => formatMhs($r), $stmt->fetchAll());
     kirimJson(true, 'Berhasil mengambil ' . count($rows) . ' data', $rows);
+}
+
+/* ---------- GET by ID: detail satu mahasiswa ---------- */
+function ambilDetail(PDO $pdo, int $id): void
+{
+    $stmt = $pdo->prepare('SELECT id, nim, nama, jurusan FROM mahasiswa WHERE id = ?');
+    $stmt->execute([$id]);
+    $row = $stmt->fetch();
+
+    if ($row === false) {
+        kirimJson(false, "Data dengan id $id tidak ditemukan", null, 404);
+    }
+    kirimJson(true, 'Berhasil mengambil detail data', formatMhs($row));
 }
 
 /* ---------- POST: tambah mahasiswa ---------- */
@@ -102,6 +115,16 @@ function hapusData(PDO $pdo): void
 }
 
 /* ---------- Fungsi bantu ---------- */
+function formatMhs(array $r): array
+{
+    return [
+        'id'      => (int) $r['id'],
+        'nim'     => (string) $r['nim'],
+        'nama'    => (string) $r['nama'],
+        'jurusan' => (string) $r['jurusan'],
+    ];
+}
+
 function bacaBody(): array
 {
     $raw = file_get_contents('php://input');
