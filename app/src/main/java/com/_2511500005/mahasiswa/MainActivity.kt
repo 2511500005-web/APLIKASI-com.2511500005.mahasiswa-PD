@@ -1,9 +1,12 @@
-package com._2511500005.mahasiswa
+}package com._2511500005.mahasiswa
 
+import android.app.Activity
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -23,6 +26,16 @@ class MainActivity : AppCompatActivity() {
 
     private val warnaHijau = Color.parseColor("#2E7D32")
     private val warnaMerah = Color.parseColor("#C62828")
+
+    // Dipanggil saat TambahMahasiswaActivity selesai.
+    // Jika RESULT_OK, data baru sudah tersimpan, sehingga list di-refresh.
+    private val tambahLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            loadData(binding.etSearch.text.toString().trim())
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,10 +57,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupActions() {
+        // Tambah: buka layar form (bukan Toast lagi)
         binding.btnTambah.setOnClickListener {
-            tampilkanForm("Tambah Mahasiswa", null) { req ->
-                lifecycleScope.launch { prosesHasilTulis(MahasiswaRepository.tambah(req)) }
-            }
+            tambahLauncher.launch(Intent(this, TambahMahasiswaActivity::class.java))
         }
         binding.btnCari.setOnClickListener {
             loadData(binding.etSearch.text.toString().trim())
@@ -132,6 +144,7 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
+    // Form dialog dipakai untuk UBAH (tambah sudah pindah ke TambahMahasiswaActivity)
     private fun tampilkanForm(judul: String, awal: Mahasiswa?, onSimpan: (MahasiswaRequest) -> Unit) {
         val form = DialogFormMahasiswaBinding.inflate(layoutInflater)
         awal?.let {

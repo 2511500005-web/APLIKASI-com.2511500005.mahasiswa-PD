@@ -142,7 +142,7 @@ function validasi(array $input): array
     $jurusan = trim((string) ($input['jurusan'] ?? ''));
 
     if ($nim === '' || $nama === '' || $jurusan === '') {
-        kirimJson(false, 'NIM, nama, dan jurusan wajib diisi', null, 422);
+        kirimJson(false, 'NIM, nama, dan jurusan wajib diisi', null, 400);
     }
     return [$nim, $nama, $jurusan];
 }

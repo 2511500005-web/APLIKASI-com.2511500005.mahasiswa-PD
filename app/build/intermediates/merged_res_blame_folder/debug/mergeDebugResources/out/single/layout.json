@@ -1,0 +1,18 @@
+[
+    {
+        "merged": "com._2511500005.mahasiswa.app-mergeDebugResources-33:/layout/item_mahasiswa.xml",
+        "source": "com._2511500005.mahasiswa.app-main-36:/layout/item_mahasiswa.xml"
+    },
+    {
+        "merged": "com._2511500005.mahasiswa.app-mergeDebugResources-33:/layout/activity_main.xml",
+        "source": "com._2511500005.mahasiswa.app-main-36:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com._2511500005.mahasiswa.app-mergeDebugResources-33:/layout/dialog_form_mahasiswa.xml",
+        "source": "com._2511500005.mahasiswa.app-main-36:/layout/dialog_form_mahasiswa.xml"
+    },
+    {
+        "merged": "com._2511500005.mahasiswa.app-mergeDebugResources-33:/layout/activity_tambah_mahasiswa.xml",
+        "source": "com._2511500005.mahasiswa.app-main-36:/layout/activity_tambah_mahasiswa.xml"
+    }
+]

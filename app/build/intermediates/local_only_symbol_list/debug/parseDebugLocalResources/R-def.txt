@@ -1,0 +1,28 @@
+R_DEF: Internal format may change without notice
+local
+id btnBatal
+id btnCari
+id btnReset
+id btnSimpan
+id btnTambah
+id etJurusan
+id etNama
+id etNim
+id etSearch
+id progressBar
+id rvMahasiswa
+id tilJurusan
+id tilNama
+id tilNim
+id tvConnectionStatus
+id tvEmpty
+id tvJudul
+id tvJurusan
+id tvNama
+id tvNim
+layout activity_main
+layout activity_tambah_mahasiswa
+layout dialog_form_mahasiswa
+layout item_mahasiswa
+string app_name
+style Theme.Mahasiswa

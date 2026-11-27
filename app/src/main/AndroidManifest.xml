@@ -21,6 +21,12 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".TambahMahasiswaActivity"
+            android:exported="false"
+            android:label="Tambah Mahasiswa"
+            android:parentActivityName=".MainActivity" />
+
     </application>
 
 </manifest>
